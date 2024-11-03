@@ -1,6 +1,7 @@
 import socket
 import threading
 from collections import defaultdict
+import sys
 
 from config import CONFIGS
 
@@ -27,18 +28,26 @@ class Tracker:
     def run(self):
         """Start the tracker to listen for incoming peer connections."""
         try:
+            self.server_socket.settimeout(5)
             while True:
-                conn, addr = self.server_socket.accept()
-                threading.Thread(
-                    target=self.handle_peer, args=(conn, addr)
-                ).start()
+                try:
+                    conn, addr = self.server_socket.accept()
+                    t = threading.Thread(
+                        target=self.handle_peer, args=(conn, addr)
+                    )
+                    t.daemon = True
+                    t.start()
+                except socket.timeout:
+                    print("Waiting for a connection...")
         except KeyboardInterrupt:
             print("Shtting down the tracker...")
+            threading.interrupt_all_thread()
         except Exception as e:
             print(f"Error running tracker: {e}")
         finally:
             self.server_socket.close()
             print("Tracker closed.")
+            sys.exit(0)
 
 
 if __name__ == "__main__":
