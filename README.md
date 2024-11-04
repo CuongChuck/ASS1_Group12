@@ -9,3 +9,6 @@ Build a Simple Torrent-like Application (STA) with the protocols defined by each
 -   Tracker can run a server on localhost
 
 ### Peer
+
+-   Peer can connect to server
+-
