@@ -139,6 +139,16 @@ class Tracker:
             peer_ip = params.get("peer_ip_address")
             peer_port = params.get("peer_port")
             bitfield = params.get("bitfield")
+            print(
+                f"id: {peer_id}, ip: {peer_ip}, port: {peer_port}, bitfield: {bitfield}"
+            )
+
+            # Check if any required parameters are missing
+            if not peer_id or not peer_ip or not peer_port or not bitfield:
+                self.send_http_response(
+                    conn, 400, {"error": "Bad Request, missing parameters"}
+                )
+                return
 
             if "announce" in path:
                 # Register the peer with extracted data
