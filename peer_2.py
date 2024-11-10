@@ -23,6 +23,7 @@ class Peer:
         self.request_pieces = set()
         self.directory = f"files_{self.id}"
 
+
     async def connect_tracker(self):
         reader, writer = await asyncio.open_connection(
             CONFIGS["TRACKER_HOST"], CONFIGS["TRACKER_PORT"]
@@ -42,6 +43,7 @@ class Peer:
         peers = self.parse_response(response.decode())
         return peers
 
+
     def parse_response(self, response):
         peers = []
         lines = response.strip().split("\n")
@@ -56,9 +58,12 @@ class Peer:
         return peers
 
     async def handle_connection(self, peer_list):
+
+    async def handle_connection(self):
+        await self.connect_tracker()
         task = asyncio.create_task(self.listen_peers())
         await asyncio.sleep(10)
-        await self.connect_peers(peer_list)
+        await self.connect_peers()
         await asyncio.sleep(30)
         task.cancel()
 
@@ -125,6 +130,16 @@ class Peer:
                             self.connect_peer(peer["ip"], peer["port"], index)
                         )
                         tasks.append(task)
+        left = self.bitfield.count("0")
+        while left > 0:
+            for peer in self.peer_list:
+                if peer["peer id"] != self.id:
+                    for index in range(len(peer["bitfield"])):
+                        if (index not in self.request_pieces) and peer["bitfield"][index] == "1" and self.bitfield[index] == "0":
+                            self.request_pieces.add(index)
+                            task = asyncio.create_task(self.connect_peer(peer["ip"], peer["port"], index))
+                            left -= 1
+                            tasks.append(task)
 
         await asyncio.gather(*tasks)
 
@@ -158,6 +173,7 @@ class Peer:
             print(f"[{self.address}] Downloaded piece {piece} as {filename}")
             self.bitfield[piece] = "1"
             self.filename[piece] = filename
+            await self.seeding()
             self.check_and_combine()
 
         writer.close()
@@ -200,6 +216,22 @@ class Peer:
                         outfile.write(data)
 
             print(f"[{self.address}] Combined pieces of file 2 into file_2.txt")
+
+    async def seeding(self):
+        reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+        print(f"[{self.address}] Connected to tracker")
+        request = (
+            f"GET /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
+            "Host: 127.0.0.1:8888\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+        )
+        writer.write(request.encode())
+        await writer.drain()
+        response = await reader.read(1500)
+        writer.close()
+        await writer.wait_closed()
+        self.peer_list = self.parse_response(response.decode())
 
 
 if __name__ == "__main__":

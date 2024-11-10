@@ -15,6 +15,11 @@ class Peer:
         self.downloaded_num = 0
         self.request_pieces = set()
         self.directory = f"files_{self.id}"
+        # self.peer_list = [
+        #    {"peer id": "123", "ip": "127.0.0.1", "port": 60000, "bitfield": "001100"},
+        #    {"peer id": "456", "ip": "127.0.0.1", "port": 61000, "bitfield": "110010"},
+        #    {"peer id": "789", "ip": "127.0.0.1", "port": 62000, "bitfield": "101001"}
+        # ]
         self.peer_list = []
 
     async def connect_tracker(self):
@@ -49,9 +54,10 @@ class Peer:
         return peers
 
     async def handle_connection(self):
+        await self.connect_tracker()
         task = asyncio.create_task(self.listen_peers())
         await asyncio.sleep(10)
-        await self.connect_peers(self.peer_list)
+        await self.connect_peers()
         await asyncio.sleep(30)
         task.cancel()
 
@@ -104,6 +110,8 @@ class Peer:
             await server.serve_forever()
 
     async def connect_peers(self, peer_list):
+
+    async def connect_peers(self):
         tasks = []
         for peer in peer_list:
             if peer["peer id"] != self.id:
@@ -118,6 +126,16 @@ class Peer:
                             self.connect_peer(peer["ip"], peer["port"], index)
                         )
                         tasks.append(task)
+        left = self.bitfield.count("0")
+        while left > 0:
+            for peer in self.peer_list:
+                if peer["peer id"] != self.id:
+                    for index in range(len(peer["bitfield"])):
+                        if (index not in self.request_pieces) and peer["bitfield"][index] == "1" and self.bitfield[index] == "0":
+                            self.request_pieces.add(index)
+                            task = asyncio.create_task(self.connect_peer(peer["ip"], peer["port"], index))
+                            left -= 1
+                            tasks.append(task)
 
         await asyncio.gather(*tasks)
 
@@ -229,9 +247,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
-    # peer = Peer()
-    # asyncio.run(peer.handle_connection())
+    peer = Peer()
+    asyncio.run(peer.handle_connection())
 
     # peer_list = [
     #    {"peer id": "123", "ip": "127.0.0.1", "port": 60000, "bitfield": "001100"},
