@@ -47,10 +47,20 @@ class Tracker:
             500: "Internal Server Error",
         }
         status_message = status_messages.get(status_code, "OK")
-        response_body = json.dumps(content)
+
+        # Determine if the response should be JSON or plain text
+        if isinstance(content, dict):
+            # JSON response
+            response_body = json.dumps(content)
+            content_type = "application/json"
+        else:
+            # Plain text response
+            response_body = content
+            content_type = "text/plain"
+
         response = (
             f"HTTP/1.1 {status_code} {status_message}\r\n"
-            "Content-Type: application/json\r\n"
+            f"Content-Type: {content_type}\r\n"
             f"Content-Length: {len(response_body)}\r\n"
             "Connection: close\r\n"
             "\r\n"
@@ -126,16 +136,11 @@ class Tracker:
                 # Register the peer with extracted data
                 self.register_peer(peer_id, peer_ip, peer_port, bitfield)
 
-            peer_list = [
-                {
-                    "id": id,
-                    "ip": details["ip"],
-                    "port": details["port"],
-                    "bitfield": details["bitfield"],
-                }
+            peer_list_text = "\n".join(
+                f"peer id: {id}, ip: {details['ip']}, port: {details['port']}, bitfield: {details['bitfield']}"
                 for id, details in self.peers.items()
-            ]
-            self.send_http_response(conn, 200, peer_list)
+            )
+            self.send_http_response(conn, 200, peer_list_text)
 
         except Exception as e:
             print(f"Error handling GET request: {e}")
@@ -189,16 +194,11 @@ class Tracker:
                     )
                     return
 
-            peer_list = [
-                {
-                    "id": id,
-                    "ip": details["ip"],
-                    "port": details["port"],
-                    "bitfield": details["bitfield"],
-                }
+            peer_list_text = "\n".join(
+                f"peer id: {id}, ip: {details['ip']}, port: {details['port']}, bitfield: {details['bitfield']}"
                 for id, details in self.peers.items()
-            ]
-            self.send_http_response(conn, 200, peer_list)
+            )
+            self.send_http_response(conn, 200, peer_list_text)
         except Exception as e:
             print(f"Error handling PUT request: {e}")
             self.send_http_response(

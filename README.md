@@ -35,7 +35,8 @@ response = (
     "Content-Length: 94\r\n"
     "Connection: close\r\n"
     "\r\n"
-    '[{"id":"123","ip":"127.0.0.1","port":"8888","bitfield":["0","1","1","0","1","0"]}]'
+    "peer id: 123, ip: 127.0.0.1, port: 1234, bitfield: 010110\n"
+    "peer id: 456, ip: 127.0.0.1, port: 1235, bitfield: 011110\n"
 )
 ```
 
@@ -60,7 +61,8 @@ response = (
     "Content-Length: 94\r\n"
     "Connection: close\r\n"
     "\r\n"
-    '[{"id":"123","ip":"127.0.0.1","port":"8888","bitfield":["0","1","1","0","1","0"]}]'
+    "peer id: 123, ip: 127.0.0.1, port: 1234, bitfield: 010110\n"
+    "peer id: 456, ip: 127.0.0.1, port: 1235, bitfield: 011110\n"
 )
 ```
 
@@ -85,6 +87,7 @@ response = (
     "Content-Length: 94\r\n"
     "Connection: close\r\n"
     "\r\n"
-    '[{"id":"123","ip":"127.0.0.1","port":"8888","bitfield":["0","1","0","0","1","0"]}]'
+    "peer id: 123, ip: 127.0.0.1, port: 1234, bitfield: 010110\n"
+    "peer id: 456, ip: 127.0.0.1, port: 1235, bitfield: 011110\n"
 )
 ```
