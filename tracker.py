@@ -139,9 +139,9 @@ class Tracker:
             peer_ip = params.get("peer_ip_address")
             peer_port = params.get("peer_port")
             bitfield = params.get("bitfield")
-            print(
-                f"id: {peer_id}, ip: {peer_ip}, port: {peer_port}, bitfield: {bitfield}"
-            )
+            # print(
+            #     f"id: {peer_id}, ip: {peer_ip}, port: {peer_port}, bitfield: {bitfield}"
+            # )
 
             # Check if any required parameters are missing
             if not peer_id or not peer_ip or not peer_port or not bitfield:
