@@ -22,6 +22,12 @@ class Peer:
         self.downloaded_num = 0
         self.request_pieces = set()
         self.directory = f"files_{self.id}"
+        # self.peer_list = [
+        #    {"peer id": "123", "ip": "127.0.0.1", "port": 60000, "bitfield": "001100"},
+        #    {"peer id": "456", "ip": "127.0.0.1", "port": 61000, "bitfield": "110010"},
+        #    {"peer id": "789", "ip": "127.0.0.1", "port": 62000, "bitfield": "101001"}
+        # ]
+        self.peer_list = []
 
     async def connect_tracker(self):
         reader, writer = await asyncio.open_connection(
@@ -39,8 +45,7 @@ class Peer:
         response = await reader.read(1500)
         writer.close()
         await writer.wait_closed()
-        peers = self.parse_response(response.decode())
-        return peers
+        self.peer_list = self.parse_response(response.decode())
 
     def parse_response(self, response):
         peers = []
@@ -209,7 +214,9 @@ class Peer:
             print(f"[{self.address}] Combined pieces of file 2 into file_2.txt")
 
     async def seeding(self):
-        reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+        reader, writer = await asyncio.open_connection(
+            CONFIGS["TRACKER_HOST"], CONFIGS["TRACKER_PORT"]
+        )
         print(f"[{self.address}] Connected to tracker")
         request = (
             f"GET /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"

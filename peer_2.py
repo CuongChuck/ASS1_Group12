@@ -22,6 +22,12 @@ class Peer:
         self.downloaded_num = 0
         self.request_pieces = set()
         self.directory = f"files_{self.id}"
+        # self.peer_list = [
+        #    {"peer id": "123", "ip": "127.0.0.1", "port": 60000, "bitfield": "001100"},
+        #    {"peer id": "456", "ip": "127.0.0.1", "port": 61000, "bitfield": "110010"},
+        #    {"peer id": "789", "ip": "127.0.0.1", "port": 62000, "bitfield": "101001"}
+        # ]
+        self.peer_list = []
 
     async def connect_tracker(self):
         reader, writer = await asyncio.open_connection(
@@ -39,8 +45,7 @@ class Peer:
         response = await reader.read(1500)
         writer.close()
         await writer.wait_closed()
-        peers = self.parse_response(response.decode())
-        return peers
+        self.peer_list = self.parse_response(response.decode())
 
     def parse_response(self, response):
         peers = []
@@ -111,7 +116,7 @@ class Peer:
         async with server:
             await server.serve_forever()
 
-    async def connect_peers(self, peer_list):
+    async def connect_peers(self):
         tasks = []
         left = self.bitfield.count("0")
         while left > 0:
