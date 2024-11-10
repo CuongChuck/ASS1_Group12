@@ -36,7 +36,7 @@ class Peer:
         print(f"Peer {self.address} is connected to tracker")
         request = (
             f"GET /announce?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
-            "Host: 127.0.0.1:8888\r\n"
+            f'Host: {CONFIGS["TRACKER_HOST"]}:{CONFIGS["TRACKER_PORT"]}\r\n'
             "Connection: close\r\n"
             "\r\n"
         )
@@ -220,7 +220,7 @@ class Peer:
         print(f"[{self.address}] Connected to tracker")
         request = (
             f"GET /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
-            "Host: 127.0.0.1:8888\r\n"
+            f'Host: {CONFIGS["TRACKER_HOST"]}:{CONFIGS["TRACKER_PORT"]}\r\n'
             "Connection: close\r\n"
             "\r\n"
         )
