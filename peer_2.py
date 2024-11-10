@@ -49,9 +49,9 @@ class Peer:
 
     async def handle_connection(self, peer_list):
         task = asyncio.create_task(self.listen_peers())
-        await asyncio.sleep(5)
+        await asyncio.sleep(10)
         await self.connect_peers(peer_list)
-        await asyncio.sleep(20)
+        await asyncio.sleep(30)
         task.cancel()
 
 
@@ -172,13 +172,13 @@ class Peer:
 
 
 if __name__ == "__main__":
-    peer1 = Peer()
-    # peer_list = asyncio.run(peer1.connect_tracker())
+    peer = Peer()
+    asyncio.run(peer.handle_connection())
     
-    peer_list = [
-        {"peer id": "123", "ip": "127.0.0.1", "port": 60000, "bitfield": "001100"},
-        {"peer id": "456", "ip": "127.0.0.1", "port": 61000, "bitfield": "110010"},
-        {"peer id": "789", "ip": "127.0.0.1", "port": 62000, "bitfield": "101001"}
-    ]
-    
-    asyncio.run(peer1.handle_connection(peer_list))
+    #peer_list = [
+    #    {"peer id": "123", "ip": "127.0.0.1", "port": 60000, "bitfield": "001100"},
+    #    {"peer id": "456", "ip": "127.0.0.1", "port": 61000, "bitfield": "110010"},
+    #    {"peer id": "789", "ip": "127.0.0.1", "port": 62000, "bitfield": "101001"}
+    #]
+
+    #asyncio.run(peer1.handle_connection(peer_list))
