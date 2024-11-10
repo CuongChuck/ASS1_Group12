@@ -13,6 +13,12 @@ class Peer:
         self.downloaded_num = 0
         self.request_pieces = set()
         self.directory = f"files_{self.id}"
+        #self.peer_list = [
+        #    {"peer id": "123", "ip": "127.0.0.1", "port": 60000, "bitfield": "001100"},
+        #    {"peer id": "456", "ip": "127.0.0.1", "port": 61000, "bitfield": "110010"},
+        #    {"peer id": "789", "ip": "127.0.0.1", "port": 62000, "bitfield": "101001"}
+        #]
+        self.peer_list = []
 
 
     async def connect_tracker(self):
@@ -29,8 +35,7 @@ class Peer:
         response = await reader.read(1500)
         writer.close()
         await writer.wait_closed()
-        peers = self.parse_response(response.decode())
-        return peers
+        self.peer_list = self.parse_response(response.decode())
 
 
     def parse_response(self, response):
@@ -47,10 +52,11 @@ class Peer:
         return peers
 
 
-    async def handle_connection(self, peer_list):
+    async def handle_connection(self):
+        await self.connect_tracker()
         task = asyncio.create_task(self.listen_peers())
         await asyncio.sleep(10)
-        await self.connect_peers(peer_list)
+        await self.connect_peers()
         await asyncio.sleep(30)
         task.cancel()
 
@@ -99,15 +105,18 @@ class Peer:
             await server.serve_forever()
 
 
-    async def connect_peers(self, peer_list):
+    async def connect_peers(self):
         tasks = []
-        for peer in peer_list:
-            if peer["peer id"] != self.id:
-                for index in range(len(peer["bitfield"])):
-                    if (index not in self.request_pieces) and peer["bitfield"][index] == "1" and self.bitfield[index] == "0":
-                        self.request_pieces.add(index)
-                        task = asyncio.create_task(self.connect_peer(peer["ip"], peer["port"], index))
-                        tasks.append(task)
+        left = self.bitfield.count("0")
+        while left > 0:
+            for peer in self.peer_list:
+                if peer["peer id"] != self.id:
+                    for index in range(len(peer["bitfield"])):
+                        if (index not in self.request_pieces) and peer["bitfield"][index] == "1" and self.bitfield[index] == "0":
+                            self.request_pieces.add(index)
+                            task = asyncio.create_task(self.connect_peer(peer["ip"], peer["port"], index))
+                            left -= 1
+                            tasks.append(task)
 
         await asyncio.gather(*tasks)
 
@@ -138,6 +147,7 @@ class Peer:
             print(f"[{self.address}] Downloaded piece {piece} as {filename}")
             self.bitfield[piece] = "1"
             self.filename[piece] = filename
+            await self.seeding()
             self.check_and_combine()
 
         writer.close()
@@ -170,15 +180,24 @@ class Peer:
 
             print(f"[{self.address}] Combined pieces of file 2 into file_2.txt")
 
+    
+    async def seeding(self):
+        reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
+        print(f"[{self.address}] Connected to tracker")
+        request = (
+            f"GET /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
+            "Host: 127.0.0.1:8888\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+        )
+        writer.write(request.encode())
+        await writer.drain()
+        response = await reader.read(1500)
+        writer.close()
+        await writer.wait_closed()
+        self.peer_list = self.parse_response(response.decode())
+
 
 if __name__ == "__main__":
     peer = Peer()
     asyncio.run(peer.handle_connection())
-    
-    #peer_list = [
-    #    {"peer id": "123", "ip": "127.0.0.1", "port": 60000, "bitfield": "001100"},
-    #    {"peer id": "456", "ip": "127.0.0.1", "port": 61000, "bitfield": "110010"},
-    #    {"peer id": "789", "ip": "127.0.0.1", "port": 62000, "bitfield": "101001"}
-    #]
-
-    #asyncio.run(peer1.handle_connection(peer_list))
