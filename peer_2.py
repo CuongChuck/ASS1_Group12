@@ -219,7 +219,7 @@ class Peer:
         )
         print(f"[{self.address}] Connected to tracker")
         request = (
-            f"GET /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
+            f"PUT /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
             f'Host: {CONFIGS["TRACKER_HOST"]}:{CONFIGS["TRACKER_PORT"]}\r\n'
             "Connection: close\r\n"
             "\r\n"

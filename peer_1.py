@@ -225,20 +225,6 @@ class Peer:
         self.peer_list = self.parse_response(response.decode())
 
 
-async def main():
-    peer = Peer()
-
-    await peer.connect_tracker()
-
-    print(f"Peer list: {peer.peer_list}")
-
-    peer.bitfield = "000000"
-
-    await peer.seeding()
-
-    print(f"Updated Peer list: {peer.peer_list}")
-
-
 if __name__ == "__main__":
     peer = Peer()
     asyncio.run(peer.handle_connection())

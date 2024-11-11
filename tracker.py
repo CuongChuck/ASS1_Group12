@@ -84,6 +84,9 @@ class Tracker:
         """Handle individual peer connections."""
         try:
             request = conn.recv(CONFIGS["BUFFER_SIZE"]).decode()
+            print(f"--------------------------------------------------")
+            print(f"--------------------------------------------------")
+            print(f"Request: {request}")
             if request.startswith("GET"):
                 self.handle_get_request(conn, request)
             elif request.startswith("PUT"):
@@ -121,9 +124,10 @@ class Tracker:
             peer_ip = params.get("peer_ip_address")
             peer_port = params.get("peer_port")
             bitfield = params.get("bitfield")
-            # print(
-            #     f"id: {peer_id}, ip: {peer_ip}, port: {peer_port}, bitfield: {bitfield}"
-            # )
+
+            print(
+                f"Request from peer id = {peer_id} at {peer_ip}:{peer_port}, bitfield = {bitfield}:"
+            )
 
             # Check if any required parameters are missing
             if not peer_id or not peer_ip or not peer_port or not bitfield:
@@ -140,6 +144,7 @@ class Tracker:
                 f"peer id: {id}, ip: {details['ip']}, port: {details['port']}, bitfield: {details['bitfield']}"
                 for id, details in self.peers.items()
             )
+            print(peer_list_text)
             self.send_http_response(conn, 200, peer_list_text)
 
         except Exception as e:
@@ -168,9 +173,10 @@ class Tracker:
             peer_ip = params.get("peer_ip_address")
             peer_port = params.get("peer_port")
             bitfield = params.get("bitfield")
-            # print(
-            #     f"id: {peer_id}, ip: {peer_ip}, port: {peer_port}, bitfield: {bitfield}"
-            # )
+
+            print(
+                f"Request from peer id = {peer_id} at {peer_ip}:{peer_port}, bitfield = {bitfield}:"
+            )
 
             # Check if any required parameters are missing
             if not peer_id or not peer_ip or not peer_port or not bitfield:
