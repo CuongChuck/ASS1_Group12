@@ -21,21 +21,31 @@ class Peer:
         self.peer_list = []
 
 
-    async def connect_tracker(self):
+    async def connect_tracker(self, announce):
         reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
-        print(f"Peer {self.address} is connected to tracker")
-        request = (
-            f"GET /announce?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
-            "Host: 127.0.0.1:8888\r\n"
-            "Connection: close\r\n"
-            "\r\n"
-        )
+        print(f"[{self.address}] Connected to tracker")
+        request = None
+        if announce is True: 
+            request = (
+                f"GET /announce?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
+                "Host: 127.0.0.1:8888\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+            )
+        else:
+            request = (
+                f"GET /peer?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
+                "Host: 127.0.0.1:8888\r\n"
+                "Connection: close\r\n"
+                "\r\n"
+            )
         writer.write(request.encode())
         await writer.drain()
         response = await reader.read(1500)
         writer.close()
         await writer.wait_closed()
         self.peer_list = self.parse_response(response.decode())
+        print(f"[{self.address}] Received peer list from tracker")
 
 
     def parse_response(self, response):
@@ -53,7 +63,7 @@ class Peer:
 
 
     async def handle_connection(self):
-        await self.connect_tracker()
+        await self.connect_tracker(True)
         task = asyncio.create_task(self.listen_peers())
         await asyncio.sleep(10)
         await self.connect_peers()
@@ -97,9 +107,10 @@ class Peer:
 
 
     async def listen_peers(self):
-        server = await asyncio.start_server(self.listen_peer, self.ip_address, self.port)
+        server = await asyncio.start_server(self.listen_peer, host=self.ip_address, port=self.port)
+        await server.start_serving()
         addr = server.sockets[0].getsockname()
-        print(f'[{self.address}] Listening on {addr}')
+        print(f'[{addr}] Listening')
 
         async with server:
             await server.serve_forever()
@@ -109,6 +120,7 @@ class Peer:
         tasks = []
         left = self.bitfield.count("0")
         while left > 0:
+            await self.connect_tracker(False)
             for peer in self.peer_list:
                 if peer["peer id"] != self.id:
                     for index in range(len(peer["bitfield"])):
@@ -185,7 +197,7 @@ class Peer:
         reader, writer = await asyncio.open_connection("127.0.0.1", 8888)
         print(f"[{self.address}] Connected to tracker")
         request = (
-            f"GET /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
+            f"PUT /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
             "Host: 127.0.0.1:8888\r\n"
             "Connection: close\r\n"
             "\r\n"
