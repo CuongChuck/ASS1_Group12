@@ -3,6 +3,7 @@ import threading
 from collections import defaultdict
 import sys
 import json
+import time
 
 from config import CONFIGS
 
@@ -67,6 +68,9 @@ class Tracker:
             f"{response_body}"
         )
         conn.sendall(response.encode())
+        print(
+            f"Time send response: {time.ctime(time.time())}, {round(time.time() * 1000)}"
+        )
 
     def register_peer(self, id, ip, port, bitfield):
         if id:
@@ -87,6 +91,9 @@ class Tracker:
             print(f"--------------------------------------------------")
             print(f"--------------------------------------------------")
             print(f"Request: {request}")
+            print(
+                f"Time receive request: {time.ctime(time.time())}, {round(time.time() * 1000)}"
+            )
             if request.startswith("GET"):
                 self.handle_get_request(conn, request)
             elif request.startswith("PUT"):

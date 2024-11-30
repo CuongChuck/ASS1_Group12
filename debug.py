@@ -1,4 +1,5 @@
 import json
+import time
 
 peer_list = [
     {
@@ -8,4 +9,5 @@ peer_list = [
         "bitfield": ["0", "1", "1", "0", "1", "0"],
     }
 ]
-print(len(json.dumps(peer_list)))
+
+print(time.ctime(time.time()))
