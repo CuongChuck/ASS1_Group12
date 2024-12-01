@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 
 from config import CONFIGS
 
@@ -19,6 +20,7 @@ class Peer:
             "",
             "piece_3.txt",
         ]
+        self.file = [False, False]
         self.downloaded_num = 0
         self.request_pieces = set()
         self.directory = f"files_{self.id}"
@@ -30,10 +32,14 @@ class Peer:
         self.peer_list = []
 
     async def connect_tracker(self, announce):
+        start_time = time.time()
+        print(f"[{self.address}] [{start_time}] Open connection to tracker")
         reader, writer = await asyncio.open_connection(
             CONFIGS["TRACKER_HOST"], CONFIGS["TRACKER_PORT"]
         )
-        print(f"[{self.address}] Connected to tracker")
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"[{self.address}] [{end_time}] Connected to tracker in {elapsed_time:.2f}")
         request = None
         if announce is True:
             request = (
@@ -49,13 +55,14 @@ class Peer:
                 "Connection: close\r\n"
                 "\r\n"
             )
+        print(f"[{self.address}] [{time.time()}] Start sending GET request to tracker")
         writer.write(request.encode())
         await writer.drain()
         response = await reader.read(1500)
+        print(f"[{self.address}] [{time.time()}] Received peer list from tracker")
         writer.close()
         await writer.wait_closed()
         self.peer_list = self.parse_response(response.decode())
-        print(f"[{self.address}] Received peer list from tracker")
 
     def parse_response(self, response):
         peers = []
@@ -75,14 +82,19 @@ class Peer:
         task = asyncio.create_task(self.listen_peers())
         await asyncio.sleep(10)
         await self.connect_peers()
-        await asyncio.sleep(30)
+        await asyncio.sleep(60)
+        print(f"[{self.address}] [{time.time()}] Shutting down...")
         task.cancel()
+        print(f"[{self.address}] [{time.time()}] Peer closed.")
 
     async def listen_peer(self, reader, writer):
         source_address = writer.get_extra_info("peername")
-        print(f"[{self.address}] Waiting for request from {source_address}")
+        start_time = time.time()
+        print(f"[{self.address}] [{start_time}] Waiting for request from {source_address}")
         request = await reader.read(1500)
-        print(f"[{self.address}] Request received from {source_address}")
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"[{self.address}] [{end_time}] Request received from {source_address} in {elapsed_time} seconds")
         request = request.decode()
         lines = request.split("\r\n")
         for line in lines:
@@ -109,7 +121,7 @@ class Peer:
                                         f"{data}"
                                     )
                                     print(
-                                        f"[{self.address}] Sending response to {source_address}"
+                                        f"[{self.address}] [{time.time()}] Sending response to {source_address}"
                                     )
                                     writer.write(response.encode())
                                     await writer.drain()
@@ -122,7 +134,7 @@ class Peer:
         )
         await server.start_serving()
         addr = server.sockets[0].getsockname()
-        print(f"[{addr}] Listening")
+        print(f"[{self.address}] [{time.time()}] Listening")
 
         async with server:
             await server.serve_forever()
@@ -153,9 +165,15 @@ class Peer:
 
     async def connect_peer(self, ip, port, piece):
         destination_address = f"{ip}:{port}"
-        reader, writer = await asyncio.open_connection(ip, port)
+        start_time = time.time()
         print(
-            f"[{self.address}] Connected to {destination_address} and ready to make a request"
+            f"[{self.address}] [{start_time}] Open connection to {destination_address}"
+        )
+        reader, writer = await asyncio.open_connection(ip, port)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(
+            f"[{self.address}] [{end_time}] Connected to {destination_address} in {elapsed_time} seconds"
         )
         request = (
             f"GET /download?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&piece={piece} HTTP/1.1\r\n"
@@ -163,12 +181,16 @@ class Peer:
             "Connection: close\r\n"
             "\r\n"
         )
+        start_time = time.time()
+        print(f"[{self.address}] [{start_time}] Start sending a request to {destination_address}")
         writer.write(request.encode())
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"[{self.address}] [{end_time}] Sent a request to {destination_address} in {elapsed_time} seconds")
         await writer.drain()
-        print(f"[{self.address}] Sending a request to {destination_address}")
         response = await reader.read(1500)
         print(
-            f"[{self.address}] Received a response from {destination_address}"
+            f"[{self.address}] [{time.time()}] Received data of piece {piece} from {destination_address}"
         )
         res = response.decode()
         data = res.split("\r\n")[-1]
@@ -178,7 +200,7 @@ class Peer:
             self.downloaded_num += 1
             with open(filepath, "w") as outfile:
                 outfile.write(data)
-            print(f"[{self.address}] Downloaded piece {piece} as {filename}")
+            print(f"[{self.address}] [{time.time()}] Written piece {piece} into file {filename}")
             self.bitfield[piece] = "1"
             self.filename[piece] = filename
             await self.seeding()
@@ -191,10 +213,12 @@ class Peer:
             self.bitfield[0] == "1"
             and self.bitfield[1] == "1"
             and self.bitfield[2] == "1"
+            and not self.file[0]
         ):
             filename = "file_1.txt"
             filepath = os.path.join(self.directory, filename)
-            print(f"[{self.address}] Combining pieces of file 1")
+            start_time = time.time()
+            print(f"[{self.address}] [{start_time}] Combining pieces of file 1")
             with open(filepath, "w") as outfile:
                 for index in range(3):
                     infilepath = os.path.join(
@@ -204,16 +228,21 @@ class Peer:
                         data = infile.read()
                         outfile.write(data)
 
-            print(f"[{self.address}] Combined pieces of file 1 into file_1.txt")
+            self.file[0] = True
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            print(f"[{self.address}] [{end_time}] Combined pieces of file 1 into file_1.txt in {elapsed_time} seconds")
 
         if (
             self.bitfield[3] == "1"
             and self.bitfield[4] == "1"
             and self.bitfield[5] == "1"
+            and not self.file[1]
         ):
             filename = "file_2.txt"
             filepath = os.path.join(self.directory, filename)
-            print(f"[{self.address}] Combining pieces of file 2")
+            start_time = time.time()
+            print(f"[{self.address}] [{start_time}] Combining pieces of file 2")
             with open(filepath, "w") as outfile:
                 for index in range(3, 6):
                     infilepath = os.path.join(
@@ -223,22 +252,34 @@ class Peer:
                         data = infile.read()
                         outfile.write(data)
 
-            print(f"[{self.address}] Combined pieces of file 2 into file_2.txt")
+            self.file[1] = True
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            print(f"[{self.address}] [{end_time}] Combined pieces of file 2 into file_2.txt in {elapsed_time} seconds")
 
     async def seeding(self):
+        start_time = time.time()
+        print(
+            f"[{self.address}] [{start_time}] Open connection to tracker"
+        )
         reader, writer = await asyncio.open_connection(
             CONFIGS["TRACKER_HOST"], CONFIGS["TRACKER_PORT"]
         )
-        print(f"[{self.address}] Connected to tracker")
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"[{self.address}] [{end_time}] Connected to tracker in {elapsed_time} seconds")
         request = (
             f"PUT /seeding?peer_id={self.id}&peer_ip_address={self.ip_address}&peer_port={self.port}&bitfield={''.join(self.bitfield)} HTTP/1.1\r\n"
             f'Host: {CONFIGS["TRACKER_HOST"]}:{CONFIGS["TRACKER_PORT"]}\r\n'
             "Connection: close\r\n"
             "\r\n"
         )
+        print(f"[{self.address}] [{time.time()}] Start sending a PUT request to tracker")
         writer.write(request.encode())
+        print(f"[{self.address}] [{time.time()}] Sent a PUT request to tracker")
         await writer.drain()
         response = await reader.read(1500)
+        print(f"[{self.address}] [{time.time()}] Received a peer list from tracker")
         writer.close()
         await writer.wait_closed()
         self.peer_list = self.parse_response(response.decode())
